@@ -1,0 +1,1 @@
+Yes: clone the repo, create/activate a virtual environment, install with pip install -r requirements.txt, and set OPENAI_API_KEY/OPENAI_PROJECT (plus Tesseract if you want vision). Then run python pc_avatar/main.py
