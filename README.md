@@ -1,6 +1,7 @@
+# Project Nova PC Avatar
+
 A floating desktop companion that listens, talks with natural speech, and roams freely across your screen. The avatar stays responsive by running speech recognition, text-to-speech, and AI calls on background threads. Use it as the foundation for richer app-aware interactions.
 
-# Project Nova PC Avatar
 ## Quick start
 
 1. Create/activate a Python 3.11 environment.
