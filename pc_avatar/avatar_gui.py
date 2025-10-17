@@ -14,6 +14,7 @@ from PyQt5.QtCore import (
     QEasingCurve,
     QPoint,
     QPropertyAnimation,
+    QSettings,
     QThread,
     QTimer,
     QUrl,
@@ -221,12 +222,14 @@ class Avatar(QWidget):
     response_finished = pyqtSignal()
     toggle_vision_requested = pyqtSignal()
     toggle_mic_requested = pyqtSignal()
+    shutdown_requested = pyqtSignal()
 
     def __init__(self) -> None:
         super().__init__()
         self._mic_enabled = True
         self._mic_device_index: Optional[int] = None
         self._audio_output_id: Optional[str] = None
+        self._pending_output_id: Optional[str] = None
         self._dragging = False
         self._drag_offset = QPoint()
         self._base_idle_text = "Hey, I'm Nova 👋"
@@ -236,12 +239,16 @@ class Avatar(QWidget):
         self._tts_thread: Optional[TTSThread] = None
         self._pose = "idle"
         self._frame_index = 0
+        self._shutdown_flag = False
+        self._settings = QSettings("NovaProject", "Avatar")
+        self._load_audio_preferences()
 
         self._setup_window()
         self._setup_ui()
         self._setup_animation()
         self._setup_motion()
         self._setup_audio()
+        self._apply_saved_audio_preferences()
 
     # ------------------------------------------------------------------
     # Public surface
@@ -390,6 +397,25 @@ class Avatar(QWidget):
         self.settings_button.clicked.connect(self._open_settings_dialog)
         button_row.addWidget(self.settings_button)
 
+        self.quit_button = QPushButton("⏻", self)
+        self.quit_button.setCursor(Qt.PointingHandCursor)
+        self.quit_button.setFixedSize(40, 40)
+        self.quit_button.setStyleSheet(
+            """
+            QPushButton {
+                background-color: rgba(244, 63, 94, 0.85);
+                color: white;
+                border-radius: 20px;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: rgba(244, 63, 94, 1.0);
+            }
+            """
+        )
+        self.quit_button.clicked.connect(self._request_shutdown)
+        button_row.addWidget(self.quit_button)
+
         button_row.addSpacerItem(QSpacerItem(12, 12, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(button_row)
 
@@ -439,7 +465,7 @@ class Avatar(QWidget):
         elif chosen == audio_action:
             self._open_settings_dialog()
         elif chosen == quit_action:
-            QApplication.quit()
+            self._request_shutdown()
 
     def mousePressEvent(self, event) -> None:  # type: ignore[override]
         if event.button() == Qt.LeftButton:
@@ -466,6 +492,10 @@ class Avatar(QWidget):
         super().mouseReleaseEvent(event)
 
     def closeEvent(self, event) -> None:  # type: ignore[override]
+        if not self._shutdown_flag:
+            event.ignore()
+            self._request_shutdown()
+            return
         self._cleanup_audio()
         super().closeEvent(event)
 
@@ -553,6 +583,14 @@ class Avatar(QWidget):
         target_y = random.randint(geom.top(), max_y)
         return QPoint(target_x, target_y)
 
+    def _request_shutdown(self) -> None:
+        if self._shutdown_flag:
+            return
+        self._shutdown_flag = True
+        self.listen_button.setEnabled(False)
+        self.show_message("Saving notes. One moment…")
+        self.shutdown_requested.emit()
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -579,6 +617,7 @@ class Avatar(QWidget):
             new_output = dialog.selected_output_id()
             self._mic_device_index = new_mic
             self._apply_audio_output(new_output)
+            self._store_audio_preferences()
             self.show_message("Audio settings updated")
             self._update_pose()
 
@@ -622,8 +661,11 @@ class Avatar(QWidget):
             return
         assert isinstance(control, QAudioOutputSelectorControl)
         try:
+            available = {output_id for output_id in control.availableOutputs()}
             target = device_id
-            if target is None:
+            if not target:
+                target = control.defaultOutput()
+            elif target not in available:
                 target = control.defaultOutput()
             if target:
                 control.setActiveOutput(target)
@@ -632,6 +674,33 @@ class Avatar(QWidget):
                 self._audio_output_id = None
         finally:
             service.releaseControl(control)
+
+    def _load_audio_preferences(self) -> None:
+        stored_mic = self._settings.value("audio/mic_index", None)
+        if stored_mic is not None and str(stored_mic).strip().isdigit():
+            self._mic_device_index = int(str(stored_mic).strip())
+        else:
+            self._mic_device_index = None
+
+        stored_output = self._settings.value("audio/output_id", None)
+        if stored_output is None:
+            self._pending_output_id = None
+        else:
+            text_value = str(stored_output).strip()
+            self._pending_output_id = text_value if text_value else None
+
+    def _apply_saved_audio_preferences(self) -> None:
+        if self._pending_output_id is not None:
+            target_output = self._pending_output_id or None
+            self._apply_audio_output(target_output)
+            self._pending_output_id = None
+        self._store_audio_preferences()
+
+    def _store_audio_preferences(self) -> None:
+        mic_value = "" if self._mic_device_index is None else str(self._mic_device_index)
+        self._settings.setValue("audio/mic_index", mic_value)
+        output_value = self._audio_output_id or ""
+        self._settings.setValue("audio/output_id", output_value)
 
     def _advance_frame(self) -> None:
         frames = self._frames.get(self._pose)

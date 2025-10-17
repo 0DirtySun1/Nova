@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "stop stop",
+  "text": "stop stop",
+  "ts": "2025-10-16T23:08:49Z",
+  "segment": "session-control",
+  "slug": "session-control",
+  "metadata": {
+    "include_screen": true
+  }
+}

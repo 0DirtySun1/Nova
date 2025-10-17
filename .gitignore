@@ -5,3 +5,6 @@ __pycache__/
 .venv/
 .DS_Store
 /*.log
+pc_avatar/logs/context/general
+pc_avatar/logs/conversation.json
+pc_avatar/logs/obsidian_vault

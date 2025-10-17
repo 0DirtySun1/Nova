@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "buy Nova",
+  "text": "buy Nova",
+  "ts": "2025-10-17T01:36:45+02:00",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

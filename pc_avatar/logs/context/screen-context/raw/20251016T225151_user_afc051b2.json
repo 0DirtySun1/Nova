@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "hey what's on my left monitor right",
+  "text": "hey what's on my left monitor right",
+  "ts": "2025-10-16T22:51:51Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

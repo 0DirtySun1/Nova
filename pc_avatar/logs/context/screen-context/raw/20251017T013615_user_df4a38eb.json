@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "oh nothing just chilling",
+  "text": "oh nothing just chilling",
+  "ts": "2025-10-17T01:36:15+02:00",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

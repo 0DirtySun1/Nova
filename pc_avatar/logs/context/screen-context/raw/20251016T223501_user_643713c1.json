@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "can you hear what music is playing",
+  "text": "can you hear what music is playing",
+  "ts": "2025-10-16T22:35:01Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

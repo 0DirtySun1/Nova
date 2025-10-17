@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "TV show am I watching on the right or left monitor",
+  "text": "TV show am I watching on the right or left monitor",
+  "ts": "2025-10-16T22:57:08Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

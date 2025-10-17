@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
 
@@ -54,6 +55,10 @@ _PROJECT_ID = _first_present(
     _load_env_value("OPENAI_PROJECT"),
     _load_env_value("OPENAI_PROJECT_ID"),
 )
+DEFAULT_MODEL = _first_present(
+    _load_env_value("OPENAI_MODEL"),
+    "gpt-4.1-mini",
+)
 
 _OFFLINE = not _API_KEY or OpenAI is None
 
@@ -70,22 +75,58 @@ else:
     _CLIENT = None
 
 
+MAX_SENTENCES = 2
+MAX_SENTENCE_CHARS = 160
+
+
+def _enforce_simple_sentences(text: str, max_sentences: int = MAX_SENTENCES) -> str:
+    cleaned = re.sub(r"\s+", " ", str(text)).strip()
+    if not cleaned:
+        return "I am here. I listen."
+
+    parts = re.split(r"(?<=[.!?])\s+", cleaned)
+    simple: List[str] = []
+    for part in parts:
+        fragment = part.strip().replace(";", ",")
+        if not fragment:
+            continue
+        if len(fragment) > MAX_SENTENCE_CHARS:
+            fragment = fragment[: MAX_SENTENCE_CHARS - 3].rstrip() + "..."
+        if fragment[-1:] not in ".?!":
+            fragment += "."
+        simple.append(fragment)
+        if len(simple) >= max_sentences:
+            break
+
+    if not simple:
+        return "I am here. I listen."
+
+    return " ".join(simple)
+
+
 def _build_messages(
     user_text: str,
     screen_text: Optional[str],
     history: Optional[Sequence[dict]] = None,
+    *,
+    allow_elaboration: bool = False,
+    memory_summary: Optional[str] = None,
 ) -> List[dict]:
-    system_prompt = {
-        "role": "system",
-        "content": (
-            "You are Nova, an AI roommate who is casual but intelligent. "
-            "Speak naturally, like a friendly human roommate. "
-            "If the user asks for help, be concise and witty when appropriate."
-        ),
-    }
+    base_prompt = (
+        "You are Nova, an AI roommate who is casual but intelligent. "
+        "Speak naturally, like a friendly human roommate. "
+        "Keep every reply short—ideally one or two crisp sentences unless the user explicitly asks for detail. "
+        "Focus on the most recent user message and only mention older context when it clearly strengthens the answer. "
+        "If the user asks for help, stay concise and witty when appropriate."
+    )
+    if allow_elaboration:
+        base_prompt += " The user asked you to 'dive deeper', so provide a thorough answer while staying clear."
+    if memory_summary:
+        base_prompt += " Background memory (use only if relevant): " + memory_summary
+    system_prompt = {"role": "system", "content": base_prompt}
     messages: List[dict] = [system_prompt]
     if history:
-        for item in history[-18:]:  # keep things snappy
+        for item in history:
             role = item.get("role") if isinstance(item, dict) else None
             content = item.get("content") if isinstance(item, dict) else None
             if role not in {"user", "assistant"}:
@@ -95,7 +136,7 @@ def _build_messages(
             messages.append({"role": role, "content": content.strip()})
     messages.append({"role": "user", "content": user_text})
     if screen_text:
-        messages.append({"role": "user", "content": f"Screen context: {screen_text[:500]}"})
+        messages.append({"role": "system", "content": f"Screen context (for reference only): {screen_text[:320]}"})
     return messages
 
 
@@ -145,7 +186,7 @@ def summarize_history(history: Sequence[dict]) -> Optional[str]:
 
     try:
         prompt = _messages_to_prompt(messages)
-        response = _CLIENT.responses.create(model="gpt-4o-mini", input=prompt)
+        response = _CLIENT.responses.create(model=DEFAULT_MODEL, input=prompt)
         text = getattr(response, "output_text", None)
         if text:
             return text.strip()
@@ -173,23 +214,53 @@ def generate_reply(
     user_text: str,
     screen_text: Optional[str] = None,
     history: Optional[Sequence[dict]] = None,
+    *,
+    memory_summary: Optional[str] = None,
 ) -> str:
     """Get a reply from OpenAI when available; otherwise return a friendly local stub.
 
     This lets the app run in demo/offline mode without an API key.
     """
-    messages = _build_messages(user_text, screen_text, history)
+    allow_elaboration = "dive deeper" in user_text.lower()
+    if history:
+        filtered_history: List[dict] = []
+        for item in history:
+            if not isinstance(item, dict):
+                continue
+            role = item.get("role")
+            content = item.get("content")
+            if role not in {"user", "assistant"}:
+                continue
+            if not isinstance(content, str) or not content.strip():
+                continue
+            if memory_summary and content.strip() == memory_summary.strip():
+                continue
+            filtered_history.append({"role": role, "content": content.strip()})
+        recent_history: Optional[Sequence[dict]] = filtered_history[-8:]
+    else:
+        recent_history = None
+
+    messages = _build_messages(
+        user_text,
+        screen_text,
+        recent_history,
+        allow_elaboration=allow_elaboration,
+        memory_summary=memory_summary,
+    )
 
     if _OFFLINE or _CLIENT is None:
-        suffix = " (no vision)" if not screen_text else ""
-        return f"[offline] You said: '{user_text}'. I'll need an API key to give a smarter answer{suffix}."
+        if screen_text:
+            offline = f"I am offline right now. You said: {user_text}, and I saw your screen."
+        else:
+            offline = f"I am offline right now. You said: {user_text}, and I did not see your screen."
+        return _enforce_simple_sentences(offline)
 
     try:
         prompt = _messages_to_prompt(messages)
-        response = _CLIENT.responses.create(model="gpt-4o-mini", input=prompt)
+        response = _CLIENT.responses.create(model=DEFAULT_MODEL, input=prompt)
         text = getattr(response, "output_text", None)
         if text:
-            return text.strip()
+            return _enforce_simple_sentences(text.strip())
 
         output = getattr(response, "output", None)
         if output:
@@ -203,22 +274,26 @@ def generate_reply(
                     if block_text:
                         chunks.append(str(block_text))
             if chunks:
-                return "".join(chunks).strip()
+                return _enforce_simple_sentences("".join(chunks).strip())
 
         # Fallback to legacy completions if the Responses API call shape isn't supported yet
-        legacy = _CLIENT.chat.completions.create(model="gpt-4o-mini", messages=messages)
-        return legacy.choices[0].message.content.strip()
+        legacy = _CLIENT.chat.completions.create(model=DEFAULT_MODEL, messages=messages)
+        return _enforce_simple_sentences(legacy.choices[0].message.content.strip())
     except Exception as exc:
         # Network, auth, or model errors -> degrade gracefully
         message = str(exc)
         if "Incorrect API key" in message or "invalid_api_key" in message:
-            return (
-                "[error] OpenAI rejected the API key. Generate a new key at https://platform.openai.com/api-keys, "
-                "then update OPENAI_API_KEY or your .env file."
+            warning = (
+                "OpenAI rejected the API key. Make a new key and update your settings."
             )
+            return _enforce_simple_sentences(warning)
         if "project" in message and "missing" in message and not _PROJECT_ID:
-            return (
-                "[error] OpenAI needs a project ID alongside the key. Set OPENAI_PROJECT (or OPENAI_PROJECT_ID) "
-                "in your environment or .env file."
+            warning = (
+                "OpenAI needs a project ID with the key. Set OPENAI_PROJECT or OPENAI_PROJECT_ID."
             )
-        return f"[error] Couldn’t reach the AI service ({message}). For now: you said '{user_text}'."
+            return _enforce_simple_sentences(warning)
+        fallback = f"I cannot reach the AI service. You said: {user_text}."
+        return _enforce_simple_sentences(fallback)
+
+    # Ensure API success responses pass through the simplifier
+    return _enforce_simple_sentences("I am not sure what to say.")

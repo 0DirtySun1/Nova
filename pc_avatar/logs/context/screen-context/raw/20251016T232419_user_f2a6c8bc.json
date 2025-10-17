@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "hey what do you remember",
+  "text": "hey what do you remember",
+  "ts": "2025-10-16T23:24:19Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

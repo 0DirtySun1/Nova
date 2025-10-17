@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "yeah what's on my left monitor right now",
+  "text": "yeah what's on my left monitor right now",
+  "ts": "2025-10-16T22:02:22Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

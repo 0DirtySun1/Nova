@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "hey can you hear me",
+  "text": "hey can you hear me",
+  "ts": "2025-10-17T01:49:21+02:00",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

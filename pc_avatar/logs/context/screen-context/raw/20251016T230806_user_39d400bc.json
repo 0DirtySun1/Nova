@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "I'm riding cold",
+  "text": "I'm riding cold",
+  "ts": "2025-10-16T23:08:06Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

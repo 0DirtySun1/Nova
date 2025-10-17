@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "how's it going",
+  "text": "how's it going",
+  "ts": "2025-10-17T01:35:45+02:00",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

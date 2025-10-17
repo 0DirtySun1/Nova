@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "what does on my right",
+  "text": "what does on my right",
+  "ts": "2025-10-16T22:52:20Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

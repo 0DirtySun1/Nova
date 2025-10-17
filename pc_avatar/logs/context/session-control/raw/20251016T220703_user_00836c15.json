@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "Nova stop",
+  "text": "Nova stop",
+  "ts": "2025-10-16T22:07:03Z",
+  "segment": "session-control",
+  "slug": "session-control",
+  "metadata": {
+    "include_screen": true
+  }
+}

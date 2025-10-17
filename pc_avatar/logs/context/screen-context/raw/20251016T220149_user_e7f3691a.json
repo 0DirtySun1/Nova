@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "how's it going can you still remember our last conversation",
+  "text": "how's it going can you still remember our last conversation",
+  "ts": "2025-10-16T22:01:49Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "segment": "session-control",
+  "slug": "session-control",
+  "summary": "- You confirmed I could hear you.  \n- I offered help with multitasking; you declined.  \n- Agreed to stay quiet until you request again.",
+  "facts": [
+    "You confirmed I could hear you.",
+    "I offered help with multitasking; you declined.",
+    "Agreed to stay quiet until you request again."
+  ],
+  "updated": "2025-10-17T01:49:57+02:00"
+}

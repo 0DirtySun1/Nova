@@ -1,0 +1,11 @@
+{
+  "role": "user",
+  "content": "remember that I'm watching one punch man",
+  "text": "remember that I'm watching one punch man",
+  "ts": "2025-10-16T22:58:50Z",
+  "segment": "screen-context",
+  "slug": "screen-context",
+  "metadata": {
+    "include_screen": true
+  }
+}
