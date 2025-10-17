@@ -139,16 +139,34 @@ class AppController(QObject):
             return
 
         cleaned = text.strip()
-        text_lower = cleaned.lower()
+        if not cleaned:
+            self.avatar.reset_idle()
+            return
 
-        if text_lower in BYE_KEYWORDS | STOP_KEYWORDS:
+        text_lower = cleaned.lower()
+        last_word = ""
+        if cleaned:
+            parts = cleaned.split()
+            if parts:
+                candidate = parts[-1].rstrip(".,!?;:\"'")
+                last_word = candidate.lower()
+
+        command_type: Optional[str] = None
+        if text_lower in BYE_KEYWORDS:
+            command_type = "bye"
+        elif text_lower in STOP_KEYWORDS:
+            command_type = "stop"
+        elif last_word in {"bye", "stop"}:
+            command_type = last_word
+
+        if command_type is not None:
             self._auto_listen_enabled = False
-            segment = self._infer_segment("user", cleaned)
-            self._last_segment = segment
-            if text_lower in BYE_KEYWORDS:
+            if command_type == "bye":
                 reply = "Bye for now! Wave me over when you want to chat again."
             else:
-                reply = "Okay, I’ll stay quiet. Tap the mic button when you want me listening again."
+                reply = "Okay, I'll stay quiet. Tap the mic button when you want me listening again."
+            segment = self._infer_segment("user", cleaned)
+            self._last_segment = segment
             append_message(
                 self._conversation,
                 "user",
